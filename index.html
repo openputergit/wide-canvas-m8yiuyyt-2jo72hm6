@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Political Consultancy Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f9ff;
+        }
+        .login-container {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #ffffff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 640px) {
+            .login-container {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-100 to-sky-200">
+    <!-- Toast notification -->
+    <div id="toast" class="toast hidden bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg">
+        <div class="flex items-center">
+            <i class="bi bi-check-circle-fill mr-2"></i>
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+
+    <!-- Login credentials helper (for demo purposes) -->
+    <div id="loginHelper" class="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-md text-sm">
+        <p class="font-semibold text-gray-700">Demo Credentials:</p>
+        <p>Username: <span class="text-sky-600">admin</span></p>
+        <p>Password: <span class="text-sky-600">admin123</span></p>
+        <button id="hideHelper" class="absolute top-1 right-1 text-gray-400 hover:text-gray-600">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm" class="login-container p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="text-center mb-6">
+            <i class="bi bi-building text-5xl text-sky-600"></i>
+            <h1 class="text-3xl font-bold text-sky-800 mt-2">Consultant Login</h1>
+            <p class="text-gray-600 mt-1">Political Consultancy Portal - Assam</p>
+        </div>
+        <form id="adminLoginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="bi bi-person text-gray-400"></i>
+                    </div>
+                    <input type="text" id="username" class="w-full pl-10 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="bi bi-lock text-gray-400"></i>
+                    </div>
+                    <input type="password" id="password" class="w-full pl-10 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                    <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <input type="checkbox" id="remember" class="h-4 w-4 text-sky-600 focus:ring-sky-500 border-gray-300 rounded">
+                <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
+            </div>
+            <button type="submit" id="loginButton" class="w-full bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition duration-200 flex items-center justify-center">
+                <i class="bi bi-box-arrow-in-right mr-2"></i>Login
+            </button>
+        </form>
+    </div>
+
+    <!-- Dashboard/Survey Form (Initially Hidden) -->
+    <div id="dashboardView" class="hidden w-full max-w-4xl mx-auto p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-sky-800">Political Consultancy Dashboard</h2>
+                    <p class="text-gray-600">Welcome to the Assam Constituency Survey System</p>
+                </div>
+                <div class="flex flex-col md:flex-row gap-2">
+                    <button id="viewResponsesBtn" class="text-sky-600 hover:text-sky-800 flex items-center px-3 py-1.5 border border-sky-600 rounded-md">
+                        <i class="bi bi-bar-chart-fill mr-1"></i> View Responses
+                    </button>
+                    <button id="logoutBtn" class="text-gray-600 hover:text-red-500 flex items-center px-3 py-1.5 border border-gray-300 rounded-md">
+                        <i class="bi bi-box-arrow-right mr-1"></i> Logout
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-sky-50 p-4 rounded-md mb-6">
+                <div class="flex items-center">
+                    <i class="bi bi-info-circle text-sky-600 text-xl mr-2"></i>
+                    <p class="text-sky-800">Please select a constituency from Assam to start the survey.</p>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Select Constituency</label>
+                <div class="relative">
+                    <select id="constituencySelect" class="w-full p-2.5 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 appearance-none">
+                        <option value="">Select a constituency</option>
+                        <option value="katigorah">Katigorah</option>
+                        <option value="silchar">Silchar</option>
+                        <option value="dholai">Dholai</option>
+                        <option value="udharbond">Udharbond</option>
+                        <option value="lakhipur">Lakhipur</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <i class="bi bi-geo-alt text-gray-500"></i>
+                    </div>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <i class="bi bi-chevron-down text-gray-500"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="surveyQuestions" class="space-y-6">
+                <!-- Questions will be dynamically inserted here -->
+            </div>
+            
+            <button id="submitSurvey" class="mt-6 w-full bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition duration-200 hidden flex items-center justify-center">
+                <span id="submitText"><i class="bi bi-send mr-2"></i>Submit Survey</span>
+                <span id="submitSpinner" class="loading-spinner ml-2 hidden"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Results View (Initially Hidden) -->
+    <div id="resultsView" class="hidden w-full max-w-4xl mx-auto p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-green-800">Survey Submitted</h2>
+                <button id="backToDashboard" class="text-sky-600 hover:text-sky-800 flex items-center">
+                    <i class="bi bi-arrow-left mr-1"></i> Back to Dashboard
+                </button>
+            </div>
+            
+            <div class="bg-green-50 p-4 rounded-md mb-6">
+                <div class="flex items-center">
+                    <i class="bi bi-check-circle-fill text-green-600 text-xl mr-2"></i>
+                    <p class="text-green-800">Thank you! Your survey for this constituency has been successfully submitted.</p>
+                </div>
+            </div>
+            
+            <div id="surveyResults" class="space-y-4">
+                <!-- Results will be shown here -->
+            </div>
+            
+            <button id="newSurvey" class="mt-6 w-full bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition duration-200 flex items-center justify-center">
+                <i class="bi bi-plus-circle mr-2"></i>Start New Survey
+            </button>
+        </div>
+    </div>
+
+    <!-- Responses Dashboard (Initially Hidden) -->
+    <div id="responsesDashboard" class="hidden w-full max-w-5xl mx-auto p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-sky-800">Response Dashboard</h2>
+                <button id="backFromResponses" class="text-sky-600 hover:text-sky-800 flex items-center">
+                    <i class="bi bi-arrow-left mr-1"></i> Back to Survey
+                </button>
+            </div>
+            
+            <div class="bg-sky-50 p-4 rounded-md mb-6">
+                <div class="flex items-center">
+                    <i class="bi bi-graph-up text-sky-600 text-xl mr-2"></i>
+                    <p class="text-sky-800">Overview of all submitted constituency surveys.</p>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filter by Constituency</label>
+                <div class="relative">
+                    <select id="filterConstituency" class="w-full md:w-1/3 p-2.5 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 appearance-none">
+                        <option value="all">All Constituencies</option>
+                        <option value="katigorah">Katigorah</option>
+                        <option value="silchar">Silchar</option>
+                        <option value="dholai">Dholai</option>
+                        <option value="udharbond">Udharbond</option>
+                        <option value="lakhipur">Lakhipur</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <i class="bi bi-funnel text-gray-500"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Constituency</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted By</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="responsesTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- We'll load sample data here for demonstration -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="noResponsesMessage" class="hidden mt-4 p-4 text-center text-gray-500">
+                No survey responses found for the selected constituency.
+            </div>
+        </div>
+    </div>
+
+    <!-- Response Details Modal -->
+    <div id="responseModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-sky-800">Survey Response Details</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            
+            <div id="modalContent" class="space-y-4">
+                <!-- Response details will be shown here -->
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button id="exportPDF" class="bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition duration-200 flex items-center justify-center mr-2">
+                    <i class="bi bi-file-earmark-pdf mr-2"></i>Export PDF
+                </button>
+                <button id="closeModalBtn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock credentials (In real application, this should be handled server-side)
+        const MOCK_CREDENTIALS = {
+            username: 'admin',
+            password: 'admin123'
+        };
+
+        // Mock database for demonstration (In real application, this would be server-side)
+        const mockDatabase = {
+            constituencies: [
+                { id: 'katigorah', name: 'Katigorah', region: 'Barak Valley' },
+                { id: 'silchar', name: 'Silchar', region: 'Barak Valley' },
+                { id: 'dholai', name: 'Dholai', region: 'Barak Valley' },
+                { id: 'udharbond', name: 'Udharbond', region: 'Barak Valley' },
+                { id: 'lakhipur', name: 'Lakhipur', region: 'Barak Valley' }
+            ],
+            constituencyQuestions: {
+                katigorah: [
+                    { id: 1, question: "Rate the public infrastructure development in Katigorah", type: "rating" },
+                    { id: 2, question: "What are the pressing issues faced by residents in your area?", type: "text" },
+                    { id: 3, question: "Does the constituency need more focus on educational institutions?", type: "boolean" },
+                    { id: 4, question: "Rate the effectiveness of current MLA in addressing local issues", type: "rating" }
+                ],
+                silchar: [
+                    { id: 5, question: "How would you rate the urban development in Silchar?", type: "rating" },
+                    { id: 6, question: "What improvements are needed in Silchar's infrastructure?", type: "text" },
+                    { id: 7, question: "Is flooding a major concern in your area?", type: "boolean" },
+                    { id: 8, question: "Rate the healthcare facilities in Silchar", type: "rating" }
+                ],
+                dholai: [
+                    { id: 9, question: "Rate the agricultural support provided to farmers in Dholai", type: "rating" },
+                    { id: 10, question: "What are the main concerns of the rural population in Dholai?", type: "text" },
+                    { id: 11, question: "Is there adequate drinking water supply in your area?", type: "boolean" },
+                    { id: 12, question: "Rate the road connectivity in Dholai constituency", type: "rating" }
+                ],
+                udharbond: [
+                    { id: 13, question: "How would you rate the development of rural areas in Udharbond?", type: "rating" },
+                    { id: 14, question: "What issues need immediate attention in Udharbond?", type: "text" },
+                    { id: 15, question: "Are government schemes effectively reaching the beneficiaries?", type: "boolean" },
+                    { id: 16, question: "Rate the employment opportunities in Udharbond", type: "rating" }
+                ],
+                lakhipur: [
+                    { id: 17, question: "Rate the condition of tea garden workers in Lakhipur", type: "rating" },
+                    { id: 18, question: "What are the key issues faced by the tea garden communities?", type: "text" },
+                    { id: 19, question: "Is there adequate educational infrastructure for tea garden children?", type: "boolean" },
+                    { id: 20, question: "Rate the healthcare facilities available in tea garden areas", type: "rating" }
+                ]
+            },
+            responses: []
+        };
+
+        // Helper function to show toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toast.className = `toast ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-3 rounded-lg shadow-lg`;
+            toastMessage.textContent = message;
+            
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.style.opacity = '1';
+                }, 500);
+            }, 3000);
+        }
+
+        // Password toggle functionality
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+
+        // Hide login helper
+        document.getElementById('hideHelper').addEventListener('click', function() {
+            document.getElementById('loginHelper').classList.add('hidden');
+        });
+
+        // Format date for display
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('en-US', {
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Handle login form submission
+        document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginButton = document.getElementById('loginButton');
+            
+            // Show loading state
+            loginButton.innerHTML = '<div class="loading-spinner mr-2"></div> Logging in...';
+            loginButton.disabled = true;
+
+            // Simulate API request delay
+            setTimeout(() => {
+                if (username === MOCK_CREDENTIALS.username && password === MOCK_CREDENTIALS.password) {
+                    document.getElementById('loginForm').classList.add('hidden');
+                    document.getElementById('loginHelper').classList.add('hidden');
+                    document.getElementById('dashboardView').classList.remove('hidden');
+                    showToast('Login successful! Welcome to the Political Consultancy Portal.', 'success');
+                } else {
+                    showToast('Invalid credentials. Please try again.', 'error');
+                }
+                
+                // Reset button state
+                loginButton.innerHTML = '<i class="bi bi-box-arrow-in-right mr-2"></i>Login';
+                loginButton.disabled = false;
+            }, 1000);
+        });
+
+        // Handle constituency selection
+        document.getElementById('constituencySelect').addEventListener('change', function(e) {
+            const constituency = e.target.value;
+            const questionsContainer = document.getElementById('surveyQuestions');
+            const submitButton = document.getElementById('submitSurvey');
+            
+            questionsContainer.innerHTML = '';
+            
+            if (constituency) {
+                const questions = mockDatabase.constituencyQuestions[constituency];
+                
+                if (!questions || questions.length === 0) {
+                    questionsContainer.innerHTML = `
+                        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p class="text-yellow-700">No survey questions found for this constituency.</p>
+                        </div>
+                    `;
+                    submitButton.classList.add('hidden');
+                    return;
+                }
+                
+                // Add constituency info header
+                const constituencyInfo = mockDatabase.constituencies.find(c => c.id === constituency);
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'bg-sky-50 p-4 rounded-lg mb-4';
+                infoDiv.innerHTML = `
+                    <h3 class="font-medium text-sky-800">Constituency: ${constituencyInfo.name}</h3>
+                    <p class="text-gray-600">Region: ${constituencyInfo.region}</p>
+                `;
+                questionsContainer.appendChild(infoDiv);
+                
+                questions.forEach((q, index) => {
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'p-4 border border-gray-200 rounded-lg bg-white shadow-sm';
+                    
+                    // Create question header
+                    const questionHeader = document.createElement('div');
+                    questionHeader.className = 'flex items-start mb-3';
+                    
+                    const questionNumber = document.createElement('span');
+                    questionNumber.className = 'flex items-center justify-center bg-sky-100 text-sky-600 rounded-full w-6 h-6 text-sm font-medium mr-2';
+                    questionNumber.textContent = index + 1;
+                    
+                    const questionLabel = document.createElement('label');
+                    questionLabel.className = 'block text-sm font-medium text-gray-700 flex-1';
+                    questionLabel.textContent = q.question;
+                    
+                    questionHeader.appendChild(questionNumber);
+                    questionHeader.appendChild(questionLabel);
+                    questionDiv.appendChild(questionHeader);
+                    
+                    let input;
+                    
+                    switch(q.type) {
+                        case 'rating':
+                            const ratingContainer = document.createElement('div');
+                            ratingContainer.className = 'flex items-center';
+                            
+                            for(let i = 1; i <= 5; i++) {
+                                const starLabel = document.createElement('label');
+                                starLabel.className = 'flex flex-col items-center mx-2 cursor-pointer';
+                                
+                                const radio = document.createElement('input');
+                                radio.type = 'radio';
+                                radio.name = `rating_${q.id}`;
+                                radio.value = i;
+                                radio.className = 'hidden';
+                                radio.dataset.questionId = q.id;
+                                
+                                const star = document.createElement('i');
+                                star.className = 'bi bi-star text-2xl text-gray-300 hover:text-yellow-400';
+                                
+                                const text = document.createElement('span');
+                                text.className = 'text-xs text-gray-600 mt-1';
+                                text.textContent = i;
+                                
+                                radio.addEventListener('change', function() {
+                                    // Reset all stars
+                                    ratingContainer.querySelectorAll('i').forEach(s => s.className = 'bi bi-star text-2xl text-gray-300 hover:text-yellow-400');
+                                    
+                                    // Fill in selected stars
+                                    let current = this.parentElement;
+                                    current.querySelector('i').className = 'bi bi-star-fill text-2xl text-yellow-400';
+                                    
+                                    while(current = current.previousElementSibling) {
+                                        current.querySelector('i').className = 'bi bi-star-fill text-2xl text-yellow-400';
+                                    }
+                                });
+                                
+                                starLabel.appendChild(radio);
+                                starLabel.appendChild(star);
+                                starLabel.appendChild(text);
+                                ratingContainer.appendChild(starLabel);
+                            }
+                            
+                            input = ratingContainer;
+                            break;
+                        case 'text':
+                            input = document.createElement('textarea');
+                            input.className = 'w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500';
+                            input.rows = 3;
+                            input.placeholder = "Enter your answer here...";
+                            input.dataset.questionId = q.id;
+                            break;
+                        case 'boolean':
+                            input = document.createElement('div');
+                            input.className = 'flex space-x-4';
+                            
+                            ['Yes', 'No'].forEach(option => {
+                                const label = document.createElement('label');
+                                label.className = 'inline-flex items-center cursor-pointer';
+                                
+                                const radio = document.createElement('input');
+                                radio.type = 'radio';
+                                radio.name = `boolean_${q.id}`;
+                                radio.value = option.toLowerCase();
+                                radio.className = 'form-radio h-4 w-4 text-sky-600 transition duration-150 ease-in-out';
+                                radio.dataset.questionId = q.id;
+                                
+                                const span = document.createElement('span');
+                                span.className = 'ml-2 text-gray-700';
+                                span.textContent = option;
+                                
+                                label.appendChild(radio);
+                                label.appendChild(span);
+                                input.appendChild(label);
+                            });
+                            break;
+                    }
+                    
+                    questionDiv.appendChild(input);
+                    questionsContainer.appendChild(questionDiv);
+                });
+                
+                submitButton.classList.remove('hidden');
+                submitButton.style.display = 'flex';
+            } else {
+                submitButton.classList.add('hidden');
+            }
+        });
+
+        // Generate a mock unique ID
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        // Handle survey submission
+        document.getElementById('submitSurvey').addEventListener('click', function() {
+            const constituency = document.getElementById('constituencySelect').value;
+            const submitBtn = document.getElementById('submitSurvey');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            
+            // Basic validation
+            let isValid = true;
+            let responses = [];
+            
+            mockDatabase.constituencyQuestions[constituency].forEach((q, index) => {
+                const questionDiv = document.querySelectorAll('#surveyQuestions > div')[index + 1]; // +1 because first div is constituency info
+                let answer = '';
+                let isAnswered = false;
+                
+                switch(q.type) {
+                    case 'rating':
+                        const selectedRating = questionDiv.querySelector(`input[data-question-id="${q.id}"]:checked`);
+                        if (selectedRating) {
+                            answer = selectedRating.value;
+                            isAnswered = true;
+                        }
+                        break;
+                    case 'text':
+                        const textarea = questionDiv.querySelector(`textarea[data-question-id="${q.id}"]`);
+                        if (textarea && textarea.value.trim()) {
+                            answer = textarea.value;
+                            isAnswered = true;
+                        }
+                        break;
+                    case 'boolean':
+                        const selectedOption = questionDiv.querySelector(`input[data-question-id="${q.id}"]:checked`);
+                        if (selectedOption) {
+                            answer = selectedOption.value;
+                            isAnswered = true;
+                        }
+                        break;
+                }
+                
+                if (!isAnswered) {
+                    isValid = false;
+                    questionDiv.classList.add('border-red-500');
+                } else {
+                    questionDiv.classList.remove('border-red-500');
+                    responses.push({
+                        questionId: q.id,
+                        question: q.question,
+                        answer: answer,
+                        type: q.type
+                    });
+                }
+            });
+            
+            if (!isValid) {
+                showToast('Please answer all questions', 'error');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitText.classList.add('opacity-0');
+            submitSpinner.classList.remove('hidden');
+            
+            // Simulate API request delay
+            setTimeout(() => {
+                // Create a mock response entry
+                const surveyResponse = {
+                    id: generateId(),
+                    constituency: constituency,
+                    constituencyName: mockDatabase.constituencies.find(c => c.id === constituency).name,
+                    user: MOCK_CREDENTIALS.username,
+                    date: new Date().toISOString(),
+                    responses: responses,
+                    status: 'Complete'
+                };
+                
+                // Save to our mock database
+                mockDatabase.responses.push(surveyResponse);
+                
+                console.log('Survey Submitted:', surveyResponse);
+                
+                // Reset UI state
+                submitBtn.disabled = false;
+                submitText.classList.remove('opacity-0');
+                submitSpinner.classList.add('hidden');
+                
+                // Display results
+                document.getElementById('dashboardView').classList.add('hidden');
+                document.getElementById('resultsView').classList.remove('hidden');
+                
+                const resultsContainer = document.getElementById('surveyResults');
+                resultsContainer.innerHTML = `
+                    <div class="mb-4">
+                        <p class="font-medium text-gray-700">Constituency:</p>
+                        <p class="bg-sky-50 p-2 rounded">${surveyResponse.constituencyName} (${mockDatabase.constituencies.find(c => c.id === constituency).region})</p>
+                    </div>
+                    <div class="mb-4">
+                        <p class="font-medium text-gray-700">Submitted By:</p>
+                        <p class="bg-gray-50 p-2 rounded">${surveyResponse.user}</p>
+                    </div>
+                    <div class="mb-4">
+                        <p class="font-medium text-gray-700">Date:</p>
+                        <p class="bg-gray-50 p-2 rounded">${formatDate(surveyResponse.date)}</p>
+                    </div>
+                `;
+                
+                responses.forEach((response, index) => {
+                    const responseElement = document.createElement('div');
+                    responseElement.className = 'mb-4';
+                    
+                    let displayValue = response.answer;
+                    
+                    // Format display value based on type
+                    if (response.type === 'rating') {
+                        const stars = '★'.repeat(parseInt(response.answer)) + '☆'.repeat(5 - parseInt(response.answer));
+                        displayValue = `${stars} (${response.answer}/5)`;
+                    } else if (response.type === 'boolean') {
+                        displayValue = response.answer === 'yes' ? '✅ Yes' : '❌ No';
+                    }
+                    
+                    responseElement.innerHTML = `
+                        <p class="font-medium text-gray-700">Q${index + 1}: ${response.question}</p>
+                        <p class="bg-gray-50 p-2 rounded">${displayValue}</p>
+                    `;
+                    resultsContainer.appendChild(responseElement);
+                });
+                
+                // Add success message at the end
+                const successMessage = document.createElement('div');
+                successMessage.className = 'mt-6 bg-green-50 p-3 rounded-lg text-center';
+                successMessage.innerHTML = `
+                    <p class="text-green-700">Survey successfully recorded in the database with ID: <span class="font-mono font-medium">${surveyResponse.id}</span></p>
+                `;
+                resultsContainer.appendChild(successMessage);
+                
+            }, 1500);
+        });
+        
+        // Handle back to survey button
+        document.getElementById('backToDashboard').addEventListener('click', function() {
+            document.getElementById('resultsView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+        });
+        
+        // Handle new survey button
+        document.getElementById('newSurvey').addEventListener('click', function() {
+            document.getElementById('resultsView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+            document.getElementById('constituencySelect').value = '';
+            document.getElementById('surveyQuestions').innerHTML = '';
+            document.getElementById('submitSurvey').classList.add('hidden');
+        });
+        
+        // Handle logout button
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            document.getElementById('dashboardView').classList.add('hidden');
+            document.getElementById('resultsView').classList.add('hidden');
+            document.getElementById('responsesDashboard').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('loginHelper').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            
+            // Reset survey form
+            document.getElementById('constituencySelect').value = '';
+            document.getElementById('surveyQuestions').innerHTML = '';
+            document.getElementById('submitSurvey').classList.add('hidden');
+            
+            showToast('Logged out successfully');
+        });
+
+        // Handle view responses button
+        document.getElementById('viewResponsesBtn').addEventListener('click', function() {
+            document.getElementById('dashboardView').classList.add('hidden');
+            document.getElementById('responsesDashboard').classList.remove('hidden');
+            
+            // Load response data into the table
+            loadResponsesTable('all');
+        });
+        
+        document.getElementById('backFromResponses').addEventListener('click', function() {
+            document.getElementById('responsesDashboard').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+        });
+        
+        // Filter constituency responses
+        document.getElementById('filterConstituency').addEventListener('change', function(e) {
+            const constituency = e.target.value;
+            loadResponsesTable(constituency);
+        });
+
+        // Load responses into the table
+        function loadResponsesTable(constituencyFilter) {
+            const tableBody = document.getElementById('responsesTableBody');
+            const noResponsesMessage = document.getElementById('noResponsesMessage');
+            tableBody.innerHTML = '';
+            
+            let filteredResponses;
+            if (constituencyFilter === 'all') {
+                filteredResponses = [...mockDatabase.responses];
+            } else {
+                filteredResponses = mockDatabase.responses.filter(r => r.constituency === constituencyFilter);
+            }
+            
+            // Sort by date (newest first)
+            filteredResponses.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            if (filteredResponses.length === 0) {
+                noResponsesMessage.classList.remove('hidden');
+                
+                // If no actual responses yet, add some sample data
+                if (mockDatabase.responses.length === 0) {
+                    const sampleResponses = [
+                        {
+                            id: 'sample1',
+                            constituency: 'katigorah',
+                            constituencyName: 'Katigorah',
+                            user: 'admin',
+                            date: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+                            status: 'Complete',
+                            responses: []
+                        },
+                        {
+                            id: 'sample2',
+                            constituency: 'silchar',
+                            constituencyName: 'Silchar',
+                            user: 'admin',
+                            date: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
+                            status: 'Complete',
+                            responses: []
+                        }
+                    ];
+                    
+                    sampleResponses.forEach(response => {
+                        const row = document.createElement('tr');
+                        
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">${response.constituencyName}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">${response.user}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">${formatDate(response.date)}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    ${response.status}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <button class="text-sky-600 hover:text-sky-900 mr-2 sample-response-btn">
+                                    <i class="bi bi-eye"></i> View
+                                </button>
+                            </td>
+                        `;
+                        
+                        // Add sample view functionality
+                        const viewBtn = row.querySelector('.sample-response-btn');
+                        viewBtn.addEventListener('click', function() {
+                            showToast('This is a sample entry. Submit a new survey to see actual data.', 'error');
+                        });
+                        
+                        tableBody.appendChild(row);
+                    });
+                    
+                    noResponsesMessage.classList.add('hidden'); // Hide no responses message for sample data
+                }
+            } else {
+                noResponsesMessage.classList.add('hidden');
+                
+                filteredResponses.forEach(response => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">${response.constituencyName}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${response.user}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${formatDate(response.date)}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                ${response.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button class="text-sky-600 hover:text-sky-900 mr-2 view-response-btn" data-response-id="${response.id}">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                    
+                    // Add event listener to view button
+                    const viewBtn = row.querySelector('.view-response-btn');
+                    viewBtn.addEventListener('click', function() {
+                        const responseId = this.getAttribute('data-response-id');
+                        showResponseDetails(responseId);
+                    });
+                });
+            }
+        }
+        
+        // Show response details modal
+        function showResponseDetails(responseId) {
+            const response = mockDatabase.responses.find(r => r.id === responseId);
+            
+            if (!response) {
+                showToast('Response not found', 'error');
+                return;
+            }
+            
+            const modalContent = document.getElementById('modalContent');
+            modalContent.innerHTML = `
+                <div class="bg-sky-50 p-4 rounded-md mb-4">
+                    <h4 class="font-medium text-sky-800">Survey Details</h4>
+                    <div class="grid grid-cols-2 gap-4 mt-2">
+                        <div>
+                            <p class="text-sm text-gray-500">Constituency</p>
+                            <p class="font-medium">${response.constituencyName}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Submitted By</p>
+                            <p class="font-medium">${response.user}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Date</p>
+                            <p class="font-medium">${formatDate(response.date)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Status</p>
+                            <p class="font-medium">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    ${response.status}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-3">Survey Responses</h4>
+                </div>
+            `;
+            
+            response.responses.forEach((resp, index) => {
+                const responseElement = document.createElement('div');
+                responseElement.className = 'mb-4 p-3 border border-gray-200 rounded';
+                
+                let displayValue = resp.answer;
+                
+                // Format display value based on type
+                if (resp.type === 'rating') {
+                    const stars = '★'.repeat(parseInt(resp.answer)) + '☆'.repeat(5 - parseInt(resp.answer));
+                    displayValue = `${stars} (${resp.answer}/5)`;
+                } else if (resp.type === 'boolean') {
+                    displayValue = resp.answer === 'yes' ? '✅ Yes' : '❌ No';
+                }
+                
+                responseElement.innerHTML = `
+                    <p class="font-medium text-gray-700">Q${index + 1}: ${resp.question}</p>
+                    <p class="mt-1 ${resp.type === 'text' ? 'bg-gray-50 p-2 rounded' : ''}">${displayValue}</p>
+                `;
+                
+                modalContent.appendChild(responseElement);
+            });
+            
+            // Show the modal
+            document.getElementById('responseModal').classList.remove('hidden');
+        }
+        
+        // Close modal buttons
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('responseModal').classList.add('hidden');
+        });
+        
+        document.getElementById('closeModalBtn').addEventListener('click', function() {
+            document.getElementById('responseModal').classList.add('hidden');
+        });
+        
+        // Export PDF button (mock functionality)
+        document.getElementById('exportPDF').addEventListener('click', function() {
+            showToast('PDF export functionality would be implemented in production', 'success');
+        });
+        
+        // Generate some mock responses for the responses view
+        function generateMockResponses() {
+            if (mockDatabase.responses.length === 0) {
+                // This would usually come from the database
+                const mockConstituencyNames = {
+                    'katigorah': 'Katigorah',
+                    'silchar': 'Silchar',
+                    'dholai': 'Dholai',
+                    'udharbond': 'Udharbond',
+                    'lakhipur': 'Lakhipur'
+                };
+            }
+        }
+        
+        // Initialize mock data
+        generateMockResponses();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
